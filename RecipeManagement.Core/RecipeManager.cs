@@ -13,28 +13,52 @@ public sealed class RecipeManager : IRecipeManager
     // Stores all recipes, looked up by their ID (like a phone book: ID -> Recipe)
     private readonly Dictionary<int, Recipe> _catalogue = new();
 
+    // Keeps track of removed recipe IDs, most recent removal on top (like a stack of plates)
+    private readonly Stack<int> _removedRecipes = new();
+
     public RecipeManager(IEnumerable<Recipe> recipes)
     {
-    // Go through every recipe we were given and store it in the catalogue
-    foreach (var recipe in recipes)
-    {
-        _catalogue[recipe.Id] = recipe;
+        // Go through every recipe we were given and store it in the catalogue
+        foreach (var recipe in recipes)
+        {
+            _catalogue[recipe.Id] = recipe;
+        }
     }
-    }
+
     public int RecipeCount => _catalogue.Count;
     public int ShoppingItemCount => 0;
     public int CookingPlanCount => 0;
     public int PendingInstructionCount => 0;
-    public int RemovedRecipeCount => 0;
+    public int RemovedRecipeCount => _removedRecipes.Count;
 
-    public bool AddRecipe(Recipe recipe) =>
-        throw new NotImplementedException("Part A: implement AddRecipe.");
+    public bool AddRecipe(Recipe recipe)
+    {
+        if (_catalogue.ContainsKey(recipe.Id))
+        {
+            return false; // a recipe with this ID already exists — don't overwrite it
+        }
 
-    public Recipe? FindRecipe(int recipeId) =>
-        throw new NotImplementedException("Part A: implement FindRecipe.");
+        _catalogue[recipe.Id] = recipe;
+        return true; // added successfully
+    }
 
-    public bool RemoveRecipe(int recipeId) =>
-        throw new NotImplementedException("Part A: implement RemoveRecipe.");
+    public Recipe? FindRecipe(int recipeId)
+    {
+        _catalogue.TryGetValue(recipeId, out var recipe);
+        return recipe;
+    }
+
+    public bool RemoveRecipe(int recipeId)
+    {
+        if (!_catalogue.ContainsKey(recipeId))
+        {
+            return false; // nothing to remove
+        }
+
+        _catalogue.Remove(recipeId);
+        _removedRecipes.Push(recipeId);
+        return true;
+    }
 
     public int AddIngredientsToShoppingList(int recipeId) =>
         throw new NotImplementedException("Part A: implement AddIngredientsToShoppingList.");
