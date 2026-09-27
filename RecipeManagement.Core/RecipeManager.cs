@@ -16,6 +16,9 @@ public sealed class RecipeManager : IRecipeManager
     // Keeps track of removed recipe IDs, most recent removal on top (like a stack of plates)
     private readonly Stack<int> _removedRecipes = new();
 
+    // Ingredients the user wants to buy, in the order they were added
+    private readonly List<string> _shoppingList = new();
+
     public RecipeManager(IEnumerable<Recipe> recipes)
     {
         // Go through every recipe we were given and store it in the catalogue
@@ -26,7 +29,7 @@ public sealed class RecipeManager : IRecipeManager
     }
 
     public int RecipeCount => _catalogue.Count;
-    public int ShoppingItemCount => 0;
+    public int ShoppingItemCount => _shoppingList.Count;
     public int CookingPlanCount => 0;
     public int PendingInstructionCount => 0;
     public int RemovedRecipeCount => _removedRecipes.Count;
@@ -60,14 +63,21 @@ public sealed class RecipeManager : IRecipeManager
         return true;
     }
 
-    public int AddIngredientsToShoppingList(int recipeId) =>
-        throw new NotImplementedException("Part A: implement AddIngredientsToShoppingList.");
+    public int AddIngredientsToShoppingList(int recipeId)
+    {
+    var recipe = FindRecipe(recipeId);
+    if (recipe is null)
+    {
+        return 0; // recipe doesn't exist, nothing added
+    }
 
-    public IReadOnlyList<string> GetShoppingList() =>
-        throw new NotImplementedException("Part A: implement GetShoppingList.");
+    _shoppingList.AddRange(recipe.Ingredients);
+    return recipe.Ingredients.Count;
+    }
 
-    public void ClearShoppingList() =>
-        throw new NotImplementedException("Part A: implement ClearShoppingList.");
+    public IReadOnlyList<string> GetShoppingList() => _shoppingList;
+
+    public void ClearShoppingList() => _shoppingList.Clear();
 
     public bool AddRecipeToCookingPlan(int recipeId) =>
         throw new NotImplementedException("Part A: implement AddRecipeToCookingPlan.");
