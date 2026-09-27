@@ -38,3 +38,4 @@ Until you implement `RecipeManager`, menu options print a **Not implemented** me
 ## AI acknowledgement
 
 Include the required AI acknowledgement statement in your submission as described in the assignment specification.
+
