@@ -10,15 +10,18 @@ namespace RecipeManagement.Core;
 /// </summary>
 public sealed class RecipeManager : IRecipeManager
 {
-    // TODO Part A: add your private collection fields here.
+    // Stores all recipes, looked up by their ID (like a phone book: ID -> Recipe)
+    private readonly Dictionary<int, Recipe> _catalogue = new();
 
     public RecipeManager(IEnumerable<Recipe> recipes)
     {
-        // TODO Part A: validate recipes and build Dictionary<int, Recipe>.
-        _ = recipes;
+    // Go through every recipe we were given and store it in the catalogue
+    foreach (var recipe in recipes)
+    {
+        _catalogue[recipe.Id] = recipe;
     }
-
-    public int RecipeCount => 0;
+    }
+    public int RecipeCount => _catalogue.Count;
     public int ShoppingItemCount => 0;
     public int CookingPlanCount => 0;
     public int PendingInstructionCount => 0;
