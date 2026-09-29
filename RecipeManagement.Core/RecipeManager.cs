@@ -27,9 +27,18 @@ public sealed class RecipeManager : IRecipeManager
 
     public RecipeManager(IEnumerable<Recipe> recipes)
     {
-        // Go through every recipe we were given and store it in the catalogue
+        if (recipes is null)
+        {
+            throw new ArgumentNullException(nameof(recipes));
+        }
+
         foreach (var recipe in recipes)
         {
+            if (recipe.Id <= 0 || string.IsNullOrWhiteSpace(recipe.Title) || _catalogue.ContainsKey(recipe.Id))
+            {
+                throw new ArgumentException($"Invalid or duplicate recipe: Id={recipe.Id}, Title='{recipe.Title}'");
+            }
+
             _catalogue[recipe.Id] = recipe;
         }
     }
@@ -42,6 +51,16 @@ public sealed class RecipeManager : IRecipeManager
 
     public bool AddRecipe(Recipe recipe)
     {
+        if (recipe is null)
+        {
+            throw new ArgumentNullException(nameof(recipe));
+        }
+
+        if (recipe.Id <= 0 || string.IsNullOrWhiteSpace(recipe.Title))
+        {
+            return false; // invalid recipe data
+        }
+
         if (_catalogue.ContainsKey(recipe.Id))
         {
             return false; // a recipe with this ID already exists — don't overwrite it
@@ -59,116 +78,127 @@ public sealed class RecipeManager : IRecipeManager
 
     public bool RemoveRecipe(int recipeId)
     {
-    if (!_catalogue.ContainsKey(recipeId))
-    {
-        return false; // nothing to remove
-    }
+        if (!_catalogue.ContainsKey(recipeId))
+        {
+            return false; // nothing to remove
+        }
 
-    _catalogue.Remove(recipeId);
-    return true;
+        if (_cookingPlan.Contains(recipeId))
+        {
+            return false; // can't remove a recipe that's currently planned
+        }
+
+        _catalogue.Remove(recipeId);
+        return true;
     }
 
     public int AddIngredientsToShoppingList(int recipeId)
     {
-    var recipe = FindRecipe(recipeId);
-    if (recipe is null)
-    {
-        return 0; // recipe doesn't exist, nothing added
+        var recipe = FindRecipe(recipeId);
+        if (recipe is null)
+        {
+            return 0; // recipe doesn't exist, nothing added
+        }
+
+        _shoppingList.AddRange(recipe.Ingredients);
+        return recipe.Ingredients.Count;
     }
 
-    _shoppingList.AddRange(recipe.Ingredients);
-    return recipe.Ingredients.Count;
-    }
-
-    public IReadOnlyList<string> GetShoppingList() => _shoppingList;
+    public IReadOnlyList<string> GetShoppingList() => _shoppingList.AsReadOnly();
 
     public void ClearShoppingList() => _shoppingList.Clear();
 
     public bool AddRecipeToCookingPlan(int recipeId)
     {
-    if (FindRecipe(recipeId) is null)
-    {
-        return false; // recipe doesn't exist, can't add it to the plan
-    }
+        if (FindRecipe(recipeId) is null)
+        {
+            return false; // recipe doesn't exist, can't add it to the plan
+        }
 
-    if (_cookingPlan.Contains(recipeId))
-    {
-        return false; // already in the plan, no duplicates allowed
-    }
+        if (_cookingPlan.Contains(recipeId))
+        {
+            return false; // already in the plan, no duplicates allowed
+        }
 
-    _cookingPlan.AddLast(recipeId);
-    return true; 
+        _cookingPlan.AddLast(recipeId);
+        return true;
     }
 
     public bool RemoveRecipeFromCookingPlan(int recipeId)
     {
-    var wasRemoved = _cookingPlan.Remove(recipeId);
-    if (wasRemoved)
-    {
-        _removedRecipes.Push(recipeId);
-    }
-    return wasRemoved;
+        var wasRemoved = _cookingPlan.Remove(recipeId);
+        if (wasRemoved)
+        {
+            _removedRecipes.Push(recipeId);
+        }
+        return wasRemoved;
     }
 
     public bool RestoreLastRemovedRecipe()
     {
-    if (_removedRecipes.Count == 0)
-    {
-        return false; // nothing to restore
-    }
+        if (_removedRecipes.Count == 0)
+        {
+            return false; // nothing to restore
+        }
 
-    var recipeId = _removedRecipes.Pop();
-    _cookingPlan.AddLast(recipeId); // put it back at the end of the plan
-    return true;
+        var recipeId = _removedRecipes.Pop();
+
+        if (!_catalogue.ContainsKey(recipeId) || _cookingPlan.Contains(recipeId))
+        {
+            return false; // recipe no longer exists, or is already back in the plan
+        }
+
+        _cookingPlan.AddLast(recipeId); // put it back at the end of the plan
+        return true;
     }
 
     public int? PeekLastRemovedRecipe()
     {
-    if (_removedRecipes.Count == 0)
-    {
-        return null; // nothing there to look at
-    }
+        if (_removedRecipes.Count == 0)
+        {
+            return null; // nothing there to look at
+        }
 
-    return _removedRecipes.Peek();
+        return _removedRecipes.Peek();
     }
 
     public IReadOnlyList<int> GetCookingPlan() => _cookingPlan.ToList();
 
     public bool StartCooking(int recipeId)
     {
-    var recipe = FindRecipe(recipeId);
-    if (recipe is null)
-    {
-        return false; // recipe doesn't exist
-    }
+        var recipe = FindRecipe(recipeId);
+        if (recipe is null || recipe.Instructions.Count == 0)
+        {
+            return false; // recipe doesn't exist, or has no instructions to cook
+        }
 
-    _pendingInstructions.Clear(); // clear any leftover instructions from a previous session
-    foreach (var instruction in recipe.Instructions)
-    {
-        _pendingInstructions.Enqueue(instruction);
-    }
+        _pendingInstructions.Clear(); // clear any leftover instructions from a previous session
+        foreach (var instruction in recipe.Instructions)
+        {
+            _pendingInstructions.Enqueue(instruction);
+        }
 
-    return true;
+        return true;
     }
 
     public string? PeekNextInstruction()
     {
-    if (_pendingInstructions.Count == 0)
-    {
-        return null;
-    }
+        if (_pendingInstructions.Count == 0)
+        {
+            return null;
+        }
 
-    return _pendingInstructions.Peek();
+        return _pendingInstructions.Peek();
     }
 
     public string? CompleteNextInstruction()
     {
-    if (_pendingInstructions.Count == 0)
-    {
-        return null;
-    }
+        if (_pendingInstructions.Count == 0)
+        {
+            return null;
+        }
 
-    return _pendingInstructions.Dequeue();
+        return _pendingInstructions.Dequeue();
     }
 
     public IReadOnlyList<Recipe> SearchByTitle(string searchText) =>
