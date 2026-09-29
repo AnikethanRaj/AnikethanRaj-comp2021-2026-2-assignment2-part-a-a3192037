@@ -22,6 +22,9 @@ public sealed class RecipeManager : IRecipeManager
     // Ordered list of recipe IDs to cook, in the order they'll be made
     private readonly LinkedList<int> _cookingPlan = new();
 
+    // Holds the current recipe's instructions, done one at a time in order
+    private readonly Queue<string> _pendingInstructions = new();
+
     public RecipeManager(IEnumerable<Recipe> recipes)
     {
         // Go through every recipe we were given and store it in the catalogue
@@ -34,7 +37,7 @@ public sealed class RecipeManager : IRecipeManager
     public int RecipeCount => _catalogue.Count;
     public int ShoppingItemCount => _shoppingList.Count;
     public int CookingPlanCount => _cookingPlan.Count;
-    public int PendingInstructionCount => 0;
+    public int PendingInstructionCount => _pendingInstructions.Count;
     public int RemovedRecipeCount => _removedRecipes.Count;
 
     public bool AddRecipe(Recipe recipe)
@@ -131,14 +134,42 @@ public sealed class RecipeManager : IRecipeManager
 
     public IReadOnlyList<int> GetCookingPlan() => _cookingPlan.ToList();
 
-    public bool StartCooking(int recipeId) =>
-        throw new NotImplementedException("Part A: implement StartCooking.");
+    public bool StartCooking(int recipeId)
+    {
+    var recipe = FindRecipe(recipeId);
+    if (recipe is null)
+    {
+        return false; // recipe doesn't exist
+    }
 
-    public string? PeekNextInstruction() =>
-        throw new NotImplementedException("Part A: implement PeekNextInstruction.");
+    _pendingInstructions.Clear(); // clear any leftover instructions from a previous session
+    foreach (var instruction in recipe.Instructions)
+    {
+        _pendingInstructions.Enqueue(instruction);
+    }
 
-    public string? CompleteNextInstruction() =>
-        throw new NotImplementedException("Part A: implement CompleteNextInstruction.");
+    return true;
+    }
+
+    public string? PeekNextInstruction()
+    {
+    if (_pendingInstructions.Count == 0)
+    {
+        return null;
+    }
+
+    return _pendingInstructions.Peek();
+    }
+
+    public string? CompleteNextInstruction()
+    {
+    if (_pendingInstructions.Count == 0)
+    {
+        return null;
+    }
+
+    return _pendingInstructions.Dequeue();
+    }
 
     public IReadOnlyList<Recipe> SearchByTitle(string searchText) =>
         throw new NotImplementedException("Part B: implement SearchByTitle.");
