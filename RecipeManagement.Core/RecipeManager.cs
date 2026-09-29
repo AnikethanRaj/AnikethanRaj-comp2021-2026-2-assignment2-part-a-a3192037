@@ -56,14 +56,13 @@ public sealed class RecipeManager : IRecipeManager
 
     public bool RemoveRecipe(int recipeId)
     {
-        if (!_catalogue.ContainsKey(recipeId))
-        {
-            return false; // nothing to remove
-        }
+    if (!_catalogue.ContainsKey(recipeId))
+    {
+        return false; // nothing to remove
+    }
 
-        _catalogue.Remove(recipeId);
-        _removedRecipes.Push(recipeId);
-        return true;
+    _catalogue.Remove(recipeId);
+    return true;
     }
 
     public int AddIngredientsToShoppingList(int recipeId)
@@ -89,20 +88,46 @@ public sealed class RecipeManager : IRecipeManager
         return false; // recipe doesn't exist, can't add it to the plan
     }
 
+    if (_cookingPlan.Contains(recipeId))
+    {
+        return false; // already in the plan, no duplicates allowed
+    }
+
     _cookingPlan.AddLast(recipeId);
-    return true;
+    return true; 
     }
 
     public bool RemoveRecipeFromCookingPlan(int recipeId)
     {
-    return _cookingPlan.Remove(recipeId);
+    var wasRemoved = _cookingPlan.Remove(recipeId);
+    if (wasRemoved)
+    {
+        _removedRecipes.Push(recipeId);
+    }
+    return wasRemoved;
     }
 
-    public bool RestoreLastRemovedRecipe() =>
-        throw new NotImplementedException("Part A: implement RestoreLastRemovedRecipe.");
+    public bool RestoreLastRemovedRecipe()
+    {
+    if (_removedRecipes.Count == 0)
+    {
+        return false; // nothing to restore
+    }
 
-    public int? PeekLastRemovedRecipe() =>
-        throw new NotImplementedException("Part A: implement PeekLastRemovedRecipe.");
+    var recipeId = _removedRecipes.Pop();
+    _cookingPlan.AddLast(recipeId); // put it back at the end of the plan
+    return true;
+    }
+
+    public int? PeekLastRemovedRecipe()
+    {
+    if (_removedRecipes.Count == 0)
+    {
+        return null; // nothing there to look at
+    }
+
+    return _removedRecipes.Peek();
+    }
 
     public IReadOnlyList<int> GetCookingPlan() => _cookingPlan.ToList();
 
