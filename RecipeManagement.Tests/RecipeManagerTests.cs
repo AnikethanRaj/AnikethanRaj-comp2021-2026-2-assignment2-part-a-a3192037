@@ -106,15 +106,20 @@ public sealed class RecipeManagerTests
     }
 
     [Fact]
-    public void RemovingRecipeFromCatalogue_DoesNotAffectExistingCookingPlanEntry()
+    public void RemoveRecipe_ReturnsFalseWhenRecipeIsInCookingPlan()
     {
         var manager = CreateManager();
         manager.AddRecipeToCookingPlan(10);
 
-        manager.RemoveRecipe(10);
+        Assert.False(manager.RemoveRecipe(10));
+        Assert.NotNull(manager.FindRecipe(10));
+    }
 
-        Assert.Null(manager.FindRecipe(10));
-        Assert.Equal(new[] { 10 }, manager.GetCookingPlan());
+    [Fact]
+    public void StartCooking_ReturnsFalseWhenRecipeHasNoInstructions()
+    {
+        var manager = CreateManager();
+        Assert.False(manager.StartCooking(20)); // Recipe B has no instructions
     }
 
     private static RecipeManager CreateManager()
